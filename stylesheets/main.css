@@ -1,0 +1,23 @@
+/* line 1, ../sass/main.sass */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* line 5, ../sass/main.sass */
+canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* line 9, ../sass/main.sass */
+input {
+  position: fixed;
+  font-size: 2em;
+  top: 2em;
+  text-align: center;
+  width: 100%;
+  background-color: transparent;
+  color: white;
+  border: none;
+}
