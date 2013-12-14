@@ -1,7 +1,10 @@
+sign = (x) -> if x < 0 then -1 else 1
+
 make_vertices = (vertices) ->
     vertices.map((v) -> new THREE.Vector3(v[0], v[1], v[2]))
 
 box_size = 100
+increment = box_size * .01
 precision = 100
 region =
     x: [-5, 5]
@@ -63,6 +66,7 @@ class GraphIt
     constructor: ->
         @camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, box_size * 10)
         @camera.position.z = 2.5 * box_size
+        @fun = (x, y) -> 0
         @controls = new THREE.TrackballControls(@camera)
         @controls.rotateSpeed = 1.0
         @controls.zoomSpeed = 1.2
@@ -104,34 +108,51 @@ class GraphIt
 
     animate: =>
         requestAnimationFrame @animate
+        if @dirty and @apply_fun()
+            @plot.geometry.computeCentroids()
+            @plot.geometry.computeFaceNormals()
+            @plot.geometry.computeVertexNormals()
+            @plot.geometry.normalsNeedUpdate = true
+            @plot.geometry.verticesNeedUpdate = true
+
+            @renderer.render @scene, @camera
+        else
+            @dirty = false
         @controls.update()
 
-    apply_fun: (fun) =>
+    apply_fun: =>
+        dirty = false
         for v in @plot.geometry.vertices
             x = v.x * (region.x[1] - region.x[0]) / box_size
             y = v.y * (region.y[1] - region.y[0]) / box_size
-            z = fun x, y
-            v.z = z * box_size / (region.z[1] - region.z[0])
-        @plot.geometry.computeCentroids()
-        @plot.geometry.computeFaceNormals()
-        @plot.geometry.computeVertexNormals()
-        @plot.geometry.normalsNeedUpdate = true
-        @plot.geometry.verticesNeedUpdate = true
-        @renderer.render @scene, @camera
+            z = @fun x, y
+            vz = z * box_size / (region.z[1] - region.z[0])
+            delta = v.z - vz
+            if abs(delta) > increment
+                dirty = true
+                v.z -= sign(delta) * increment
+            else if v.z isnt vz
+                dirty = true
+                v.z = vz
+        dirty
 
     input: (event) =>
+        if event.target.value is ''
+            return
         try
             fun =  new Function('x', 'y', 'return ' + event.target.value)
-            fun 0, 0
+            rv = fun 0, 0
         catch
             return
-        @apply_fun fun
+        if typeof rv is 'number'
+            @fun = fun
+            @dirty = true
 
 $ =>
     @git = new GraphIt()
     @git.animate()
 
-    $('input').on('input', git.input).trigger('input')
+    $('input').on('input', git.input).focus().trigger('input')
 
     $(window)
         .resize =>
