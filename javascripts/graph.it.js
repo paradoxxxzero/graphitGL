@@ -70,13 +70,6 @@ GraphIt = (function() {
       return 0;
     };
     this.controls = new THREE.TrackballControls(this.camera);
-    this.controls.rotateSpeed = 1.0;
-    this.controls.zoomSpeed = 1.2;
-    this.controls.panSpeed = 0.8;
-    this.controls.noZoom = false;
-    this.controls.noPan = false;
-    this.controls.staticMoving = true;
-    this.controls.dynamicDampingFactor = 0.3;
     this.scene = new THREE.Scene();
     this.line = make_line_box(box_size, 0x5e3fbe);
     this.scene.add(this.line);
@@ -105,6 +98,7 @@ GraphIt = (function() {
 
   GraphIt.prototype.animate = function() {
     requestAnimationFrame(this.animate);
+    window.t = ((new Date()).getTime() - window.base_time) / 1000;
     if (this.dirty && this.apply_fun()) {
       this.plot.geometry.computeCentroids();
       this.plot.geometry.computeFaceNormals();
@@ -152,6 +146,7 @@ GraphIt = (function() {
       return;
     }
     if (typeof rv === 'number') {
+      window.base_time = (new Date()).getTime();
       this.fun = fun;
       return this.dirty = true;
     }

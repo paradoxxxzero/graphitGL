@@ -16,29 +16,29 @@ make_line_box = (h, color) ->
     h *= .5
     geometry.vertices = make_vertices [
         [-h, -h, -h],
-        [-h, h, -h],
-        [-h, h, -h],
-        [h, h, -h],
-        [h, h, -h],
-        [h, -h, -h],
-        [h, -h, -h],
+        [-h,  h, -h],
+        [-h,  h, -h],
+        [ h,  h, -h],
+        [ h,  h, -h],
+        [ h, -h, -h],
+        [ h, -h, -h],
         [-h, -h, -h],
-        [-h, -h, h],
-        [-h, h, h],
-        [-h, h, h],
-        [h, h, h],
-        [h, h, h],
-        [h, -h, h],
-        [h, -h, h],
-        [-h, -h, h],
+        [-h, -h,  h],
+        [-h,  h,  h],
+        [-h,  h,  h],
+        [ h,  h,  h],
+        [ h,  h,  h],
+        [ h, -h,  h],
+        [ h, -h,  h],
+        [-h, -h,  h],
         [-h, -h, -h],
-        [-h, -h, h],
-        [-h, h, -h],
-        [-h, h, h],
-        [h, h, -h],
-        [h, h, h],
-        [h, -h, -h],
-        [h, -h, h]
+        [-h, -h,  h],
+        [-h,  h, -h],
+        [-h,  h,  h],
+        [ h,  h, -h],
+        [ h,  h,  h],
+        [ h, -h, -h],
+        [ h, -h,  h]
     ]
     geometry.computeLineDistances()
     material = new THREE.LineBasicMaterial
@@ -68,13 +68,6 @@ class GraphIt
         @camera.position.z = 2.5 * box_size
         @fun = (x, y) -> 0
         @controls = new THREE.TrackballControls(@camera)
-        @controls.rotateSpeed = 1.0
-        @controls.zoomSpeed = 1.2
-        @controls.panSpeed = 0.8
-        @controls.noZoom = false
-        @controls.noPan = false
-        @controls.staticMoving = true
-        @controls.dynamicDampingFactor = 0.3
 
         @scene = new THREE.Scene()
 
@@ -83,7 +76,6 @@ class GraphIt
 
         @plot = make_plot 0xff5995
         @scene.add @plot
-
 
         @hemi_light = new THREE.HemisphereLight 0xffffff, 0xffffff, 0.6
         @hemi_light.color.setHSL 0.6, 1, 0.6
@@ -108,6 +100,7 @@ class GraphIt
 
     animate: =>
         requestAnimationFrame @animate
+        window.t = ((new Date()).getTime() - window.base_time) / 1000
         if @dirty and @apply_fun()
             @plot.geometry.computeCentroids()
             @plot.geometry.computeFaceNormals()
@@ -145,6 +138,7 @@ class GraphIt
         catch
             return
         if typeof rv is 'number'
+            window.base_time = (new Date()).getTime()
             @fun = fun
             @dirty = true
 
