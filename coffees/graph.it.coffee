@@ -3,13 +3,14 @@ sign = (x) -> if x < 0 then -1 else 1
 make_vertices = (vertices) ->
     vertices.map((v) -> new THREE.Vector3(v[0], v[1], v[2]))
 
+steps = 10
+
 box_size = 100
-increment = box_size * .01
 precision = 100
 region =
     x: [-5, 5]
     y: [-5, 5]
-    z: [-25, 25]
+    z: [-5, 5]
 
 make_line_box = (h, color) ->
     geometry = new THREE.Geometry()
@@ -63,11 +64,13 @@ make_plot = (color) ->
     mesh
 
 class GraphIt
-    constructor: ->
-        @camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, box_size * 10)
+    constructor: (fun) ->
+        @camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, box_size * 100)
         @camera.position.z = 2.5 * box_size
-        @fun = (x, y) -> 0
         @controls = new THREE.TrackballControls(@camera)
+
+        @controls._rotateStart = new THREE.Vector3 0, -.125, 1
+        @controls._rotateEnd = new THREE.Vector3 0, .125, 1
 
         @scene = new THREE.Scene()
 
@@ -83,7 +86,7 @@ class GraphIt
         @hemi_light.position.set 0, 0, -500
         @scene.add @hemi_light
 
-        @point_light = new THREE.PointLight 0xffffff, 1, 500
+        @point_light = new THREE.PointLight 0xffffff, .65, 1000
         @point_light.position = @camera.position
         @scene.add @point_light
 
@@ -95,41 +98,50 @@ class GraphIt
         @renderer.gammaOutput = true
 
         @controls.addEventListener('change',=> @renderer.render(@scene, @camera))
-
+        @first = true
         document.body.appendChild @renderer.domElement
+
+    refresh: ->
+        @plot.geometry.computeCentroids()
+        @plot.geometry.computeFaceNormals()
+        @plot.geometry.computeVertexNormals()
+        @plot.geometry.normalsNeedUpdate = true
+        @plot.geometry.verticesNeedUpdate = true
 
     animate: =>
         requestAnimationFrame @animate
         window.t = ((new Date()).getTime() - window.base_time) / 1000
-        if @dirty and @apply_fun()
-            @plot.geometry.computeCentroids()
-            @plot.geometry.computeFaceNormals()
-            @plot.geometry.computeVertexNormals()
-            @plot.geometry.normalsNeedUpdate = true
-            @plot.geometry.verticesNeedUpdate = true
-
+        if @dirty
+            @step()
+            @refresh()
             @renderer.render @scene, @camera
-        else
-            @dirty = false
+
         @controls.update()
 
-    apply_fun: =>
-        dirty = false
+    step: =>
+        @dirty = false
+        return unless steps
+        for v in @plot.geometry.vertices
+            return unless v.target?
+            if abs(v.target - v.z) > abs v.increment
+                v.z += v.increment
+                @dirty = true
+            else if v.z isnt v.target
+                v.z = v.target
+
+    apply_fun: (animate=true) =>
         for v in @plot.geometry.vertices
             x = v.x * (region.x[1] - region.x[0]) / box_size
             y = v.y * (region.y[1] - region.y[0]) / box_size
             z = @fun x, y
-            vz = z * box_size / (region.z[1] - region.z[0])
-            delta = v.z - vz
-            if abs(delta) > increment
-                dirty = true
-                v.z -= sign(delta) * increment
-            else if v.z isnt vz
-                dirty = true
-                v.z = vz
-        dirty
 
-    input: (event) =>
+            if animate and steps
+                v.target = z * box_size / (region.z[1] - region.z[0])
+                v.increment = (v.target - v.z) / steps
+            else
+                v.z = z * box_size / (region.z[1] - region.z[0])
+
+    input: (event, fake) =>
         if event.target.value is ''
             return
         try
@@ -137,16 +149,21 @@ class GraphIt
             rv = fun 0, 0
         catch
             return
-        if typeof rv is 'number'
+        if typeof rv is 'number' and fun isnt @fun
+            unless fake
+                history.pushState null, null, '#' + event.target.value
             window.base_time = (new Date()).getTime()
             @fun = fun
             @dirty = true
+            @apply_fun not @first
+            @first = false
 
 $ =>
     @git = new GraphIt()
     @git.animate()
 
-    $('input').on('input', git.input).focus().trigger('input')
+    fun = location.hash.slice(1) or "cos(x) * sin(y)"
+    $('input').on('input', git.input).focus().val(fun).trigger('input', true)
 
     $(window)
         .resize =>
@@ -154,6 +171,10 @@ $ =>
             @git.renderer.setSize window.innerWidth, window.innerHeight
             @git.camera.updateProjectionMatrix()
             @git.controls.handleResize()
+            @git.renderer.render @git.scene, @git.camera
+
+    @addEventListener "popstate", ->
+        $('input').val(location.hash.slice(1)).trigger('input', true)
 
 # Horrible hack to get rid of the math module:
 for key in [
