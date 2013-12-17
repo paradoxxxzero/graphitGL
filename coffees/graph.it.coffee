@@ -3,7 +3,7 @@ sign = (x) -> if x < 0 then -1 else 1
 make_vertices = (vertices) ->
     vertices.map((v) -> new THREE.Vector3(v[0], v[1], v[2]))
 
-steps = 10
+steps = 5
 
 box_size = 100
 precision = 100
@@ -12,7 +12,7 @@ region =
     y: [-5, 5]
     z: [-5, 5]
 
-make_line_box = (h, color) ->
+make_box_lines = (h, color) ->
     geometry = new THREE.Geometry()
     h *= .5
     geometry.vertices = make_vertices [
@@ -44,7 +44,33 @@ make_line_box = (h, color) ->
     geometry.computeLineDistances()
     material = new THREE.LineBasicMaterial
         color: color
+        linewidth: 2
     type = THREE.LinePieces
+
+    new THREE.Line(geometry, material, type)
+
+make_axis_lines = (h, color) ->
+    geometry = new THREE.Geometry()
+    h *= .75
+    geometry.vertices = make_vertices [
+        [ 0,  0,  0],
+        [-h,  0,  0],
+        [ h,  0,  0],
+        [ 0,  0,  0],
+        [ 0, -h,  0],
+        [ 0,  h,  0],
+        [ 0,  0,  0],
+        [ 0,  0, -h],
+        [ 0,  0,  h]
+        [ 0,  0,  0],
+    ]
+
+    type = THREE.LinePieces
+    geometry.computeLineDistances()
+    material = new THREE.LineBasicMaterial
+        color: color
+        linewidth: 2
+
     new THREE.Line(geometry, material, type)
 
 make_plot = (color) ->
@@ -74,8 +100,11 @@ class GraphIt
 
         @scene = new THREE.Scene()
 
-        @line =  make_line_box box_size, 0x5e3fbe
+        @line = make_box_lines box_size, 0x5e3fbe
         @scene.add @line
+
+        @axis = make_axis_lines box_size, 0x5e3fbe
+        @scene.add @axis
 
         @plot = make_plot 0xff5995
         @scene.add @plot
@@ -86,7 +115,7 @@ class GraphIt
         @hemi_light.position.set 0, 0, -500
         @scene.add @hemi_light
 
-        @point_light = new THREE.PointLight 0xffffff, .65, 1000
+        @point_light = new THREE.PointLight 0xffffff, .5, 1000
         @point_light.position = @camera.position
         @scene.add @point_light
 
@@ -94,11 +123,9 @@ class GraphIt
         @renderer.setClearColor 0x1b1d1e
         @renderer.setSize window.innerWidth, window.innerHeight
 
-        @renderer.gammaInput = true
-        @renderer.gammaOutput = true
-
         @controls.addEventListener('change',=> @renderer.render(@scene, @camera))
         @first = true
+        @time_parametric = false
         document.body.appendChild @renderer.domElement
 
     refresh: ->
@@ -107,15 +134,13 @@ class GraphIt
         @plot.geometry.computeVertexNormals()
         @plot.geometry.normalsNeedUpdate = true
         @plot.geometry.verticesNeedUpdate = true
+        @renderer.render @scene, @camera
 
     animate: =>
         requestAnimationFrame @animate
-        window.t = ((new Date()).getTime() - window.base_time) / 1000
-        if @dirty
-            @step()
-            @refresh()
-            @renderer.render @scene, @camera
-
+        @step() if @dirty
+        @apply_fun(false) if @time_parametric
+        @refresh() if @dirty or @time_parametric
         @controls.update()
 
     step: =>
@@ -133,7 +158,7 @@ class GraphIt
         for v in @plot.geometry.vertices
             x = v.x * (region.x[1] - region.x[0]) / box_size
             y = v.y * (region.y[1] - region.y[0]) / box_size
-            z = @fun x, y
+            z = @fun x, y, ((new Date()).getTime() - @base_time) / 1000
 
             if animate and steps
                 v.target = z * box_size / (region.z[1] - region.z[0])
@@ -145,17 +170,29 @@ class GraphIt
         if event.target.value is ''
             return
         try
-            fun =  new Function('x', 'y', 'return ' + event.target.value)
-            rv = fun 0, 0
+            fun =  new Function('x', 'y', 't', 'return ' + event.target.value)
+            # Test random values
+            x = random()
+            y = random()
+            t1 = random()
+            t2 = random()
+            rv = fun x, y, t1
+            # Hack to see if it changes along time
+            @time_parametric = rv != fun x, y, t2
         catch
             return
         if typeof rv is 'number' and fun isnt @fun
             unless fake
                 history.pushState null, null, '#' + event.target.value
-            window.base_time = (new Date()).getTime()
+            @base_time = (new Date()).getTime()
             @fun = fun
             @dirty = true
-            @apply_fun not @first
+            if @first or @time_parametric
+                @apply_fun false
+                @refresh()
+            else
+                @apply_fun true
+
             @first = false
 
 $ =>
@@ -174,7 +211,8 @@ $ =>
             @git.renderer.render @git.scene, @git.camera
 
     @addEventListener "popstate", ->
-        $('input').val(location.hash.slice(1)).trigger('input', true)
+        if location.hash and location.hash.slice(1) != $('input').val()
+            $('input').val(location.hash.slice(1)).trigger('input', true)
 
 # Horrible hack to get rid of the math module:
 for key in [
