@@ -200,7 +200,7 @@
       }
       if (typeof rv === 'number' && fun !== this.fun) {
         if (!fake) {
-          history.pushState(null, null, '#' + event.target.value);
+          history.pushState(null, null, '#' + btoa(event.target.value));
         }
         this.base_time = (new Date()).getTime();
         this.fun = fun;
@@ -224,7 +224,7 @@
       var fun;
       _this.git = new GraphIt();
       _this.git.animate();
-      fun = location.hash.slice(1) || "cos(x) * sin(y)";
+      fun = atob(location.hash.slice(1)) || "cos(x) * sin(y)";
       $('input').on('input', git.input).focus().val(fun).trigger('input', true);
       $(window).resize(function() {
         _this.git.camera.aspect = window.innerWidth / window.innerHeight;
@@ -234,8 +234,8 @@
         return _this.git.renderer.render(_this.git.scene, _this.git.camera);
       });
       return _this.addEventListener("popstate", function() {
-        if (location.hash && location.hash.slice(1) !== $('input').val()) {
-          return $('input').val(location.hash.slice(1)).trigger('input', true);
+        if (location.hash && atob(location.hash.slice(1)) !== $('input').val()) {
+          return $('input').val(atob(location.hash.slice(1))).trigger('input', true);
         }
       });
     };

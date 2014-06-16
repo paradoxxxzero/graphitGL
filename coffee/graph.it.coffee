@@ -210,7 +210,7 @@ class GraphIt
       return
     if typeof rv is 'number' and fun isnt @fun
       unless fake
-        history.pushState null, null, '#' + event.target.value
+        history.pushState null, null, '#' + btoa(event.target.value)
       @base_time = (new Date()).getTime()
       @fun = fun
       @dirty = true
@@ -226,7 +226,7 @@ $ =>
   @git = new GraphIt()
   @git.animate()
 
-  fun = location.hash.slice(1) or "cos(x) * sin(y)"
+  fun = atob(location.hash.slice(1)) or "cos(x) * sin(y)"
   $('input').on('input', git.input).focus().val(fun).trigger('input', true)
 
   $(window)
@@ -238,8 +238,8 @@ $ =>
       @git.renderer.render @git.scene, @git.camera
 
   @addEventListener "popstate", ->
-    if location.hash and location.hash.slice(1) != $('input').val()
-      $('input').val(location.hash.slice(1)).trigger('input', true)
+    if location.hash and atob(location.hash.slice(1)) != $('input').val()
+      $('input').val(atob(location.hash.slice(1))).trigger('input', true)
 
 # Horrible hack to get rid of the math module:
 for key in [
