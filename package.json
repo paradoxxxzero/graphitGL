@@ -1,15 +1,24 @@
 {
-  "name": "graph.it",
-  "version": "1.0.0",
-  "description": "WebGL surface plotter",
+  "name": "graphitgl",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "devDependencies": {
-    "grunt": "~0.4.4",
-    "grunt-coffeelint": "0.0.8",
-    "grunt-contrib-coffee": "^0.10.1",
-    "grunt-contrib-connect": "^0.8.0",
-    "grunt-contrib-uglify": "^0.4.0",
-    "grunt-contrib-watch": "^0.6.1",
-    "grunt-sass": "^0.13.1"
+    "eslint": "^8.41.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^2.8.8",
+    "vite": "^4.4.0"
+  },
+  "dependencies": {
+    "three": "^0.154.0"
   }
 }
