@@ -267,7 +267,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const git = new GraphIt()
   git.animate()
 
-  const fun = atob(location.hash.slice(1)) || 'cos(x) * sin(y)'
+  const fun = atob(location.hash.slice(1)) || 'cos(x) * sin(y * sin(t))'
   const input = document.getElementById('input')
   input.addEventListener('input', e => {
     git.input(e.target.value)
