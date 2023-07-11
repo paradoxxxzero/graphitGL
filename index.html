@@ -24,7 +24,7 @@
         background-color: black;
         font-family: 'Fira Code', monospace;
       }
-      input {
+      #input {
         position: fixed;
         font-size: 2em;
         top: 2em;
@@ -35,10 +35,48 @@
         border: none;
         outline: none;
       }
+      .range {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        color: white;
+      }
+      .domain {
+        background-color: transparent;
+        color: white;
+        border: none;
+        outline: none;
+        width: 3ch;
+        font-size: 1.5em;
+      }
     </style>
   </head>
   <body>
-    <input type="text" id="input" />
+    <input type="text" id="input" name="input" />
+    <div class="range">
+      <div>
+        <label>x</label>
+        <input type="number" name="xmin" class="domain" value="-5" />
+        x
+        <input type="number" name="xmax" class="domain" value="5" />
+      </div>
+      <div>
+        <label>y</label>
+        <input type="number" name="ymin" class="domain" value="-5" />
+        x
+        <input type="number" name="ymax" class="domain" value="5" />
+      </div>
+      <div>
+        <label>z</label>
+        <input type="number" name="zmin" class="domain" value="-5" />
+        x
+        <input type="number" name="zmax" class="domain" value="5" />
+      </div>
+      <label
+        >Helpers
+        <input type="checkbox" name="helpers" id="helpers" checked />
+      </label>
+    </div>
     <canvas id="gl"></canvas>
     <script type="module" src="/main.js"></script>
   </body>

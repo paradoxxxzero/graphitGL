@@ -1,6 +1,8 @@
 import {
+  AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
+  Color,
   DoubleSide,
   Float32BufferAttribute,
   HemisphereLight,
@@ -14,20 +16,27 @@ import {
   Scene,
   WebGLRenderer,
 } from 'three'
-import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
-const steps = 5
+const steps = 10
 
-const box_size = 100
 const precision = 100
 const region = {
   x: [-5, 5],
   y: [-5, 5],
-  z: [-5, 5],
+  z: [-2.5, 2.5],
 }
 
-const make_box_lines = function (h, color) {
-  const geometry = new BoxGeometry(h, h, h)
+const lerp = function (a, b, t) {
+  return a + (b - a) * t
+}
+
+const inverseLerp = function (a, b, v) {
+  return (v - a) / (b - a)
+}
+
+const make_box_lines = function (color) {
+  const geometry = new BoxGeometry()
   geometry.setIndex([
     0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 5, 1, 4, 3, 6, 2, 7,
   ])
@@ -40,8 +49,8 @@ const make_box_lines = function (h, color) {
   return new LineSegments(geometry, material)
 }
 
-const make_axis_lines = function (h, color) {
-  h *= 0.75
+const make_axis_lines = function (color) {
+  const h = 0.5
   const vertices = [
     [-h, 0, 0],
     [h, 0, 0],
@@ -57,18 +66,18 @@ const make_axis_lines = function (h, color) {
   const material = new LineBasicMaterial({
     color,
     linewidth: 2,
+    depthTest: false,
+    depthWrite: false,
+    blending: AdditiveBlending,
   })
 
-  return new LineSegments(geometry, material)
+  const mesh = new LineSegments(geometry, material)
+  mesh.renderOrder = 1000
+  return mesh
 }
 
 const make_plot = function (color) {
-  const geometry = new PlaneGeometry(
-    box_size,
-    box_size,
-    precision - 1,
-    precision - 1
-  )
+  const geometry = new PlaneGeometry(1, 1, precision - 1, precision - 1)
 
   const phmaterial = new MeshPhongMaterial({
     color,
@@ -89,33 +98,38 @@ class GraphIt {
     this.apply_fun = this.apply_fun.bind(this)
     this.input = this.input.bind(this)
     this.camera = new PerspectiveCamera(
-      30,
+      45,
       window.innerWidth / window.innerHeight,
-      1,
-      box_size * 100
+      0.01,
+      1000
     )
-    this.camera.position.y = -2.5 * box_size
-    this.camera.position.z = 1.5 * box_size
+    this.camera.up.set(0, 0, 1)
+    this.camera.lookAt(0, 0, 0)
+    this.camera.zoom = Math.min(1, window.innerWidth / window.innerHeight)
+    this.camera.position.y = -1.5
+    this.camera.position.z = 1.5
 
     this.scene = new Scene()
     this.scene.add(this.camera)
 
-    this.line = make_box_lines(box_size, 0x5e3fbe)
-    this.scene.add(this.line)
+    this.box = make_box_lines(0x5e3fbe)
+    this.scene.add(this.box)
 
-    this.axis = make_axis_lines(box_size, 0x5e3fbe)
+    this.axis = make_axis_lines(0x5e3fbe)
     this.scene.add(this.axis)
 
     this.plot = make_plot(0xff5995)
     this.scene.add(this.plot)
 
-    this.hemi_light = new HemisphereLight(0xffffff, 0xffffff, 0.6)
-    this.hemi_light.color.setHSL(0.6, 1, 0.6)
-    this.hemi_light.groundColor.setHSL(0.095, 1, 0.75)
+    this.hemi_light = new HemisphereLight(
+      new Color().setHSL(0.6, 1, 0.4),
+      new Color().setHSL(0.1, 1, 0.75),
+      0.6
+    )
     this.hemi_light.position.set(0, 0, -500)
     this.scene.add(this.hemi_light)
 
-    this.point_light = new PointLight(0xffffff, 0.5, 1000)
+    this.point_light = new PointLight(0xffffff, 0.5)
     this.camera.add(this.point_light)
 
     this.renderer = new WebGLRenderer({
@@ -125,8 +139,8 @@ class GraphIt {
     this.renderer.setClearColor(0x1b1d1e)
     this.renderer.setSize(window.innerWidth, window.innerHeight)
 
-    this.controls = new TrackballControls(this.camera, this.renderer.domElement)
-    this.controls.rotateSpeed = 10
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    this.controls.enableDamping = true
     this.controls.addEventListener('change', () =>
       this.renderer.render(this.scene, this.camera)
     )
@@ -180,19 +194,28 @@ class GraphIt {
 
   apply_fun(animate = true) {
     const result = []
+
     const verts = this.plot.geometry.attributes.position.array
     for (let i = 0; i < precision * precision; i++) {
-      const x = (verts[i * 3] * (region.x[1] - region.x[0])) / box_size
-      const y = (verts[i * 3 + 1] * (region.y[1] - region.y[0])) / box_size
-      const z = this.fun(x, y, (new Date().getTime() - this.base_time) / 1000)
+      const x = lerp(region.x[0], region.x[1], 0.5 + verts[i * 3])
+      const y = lerp(region.y[0], region.y[1], 0.5 + verts[i * 3 + 1])
+      const z = this.fun(x, y, (performance.now() - this.base_time) / 1000)
+
+      const target = inverseLerp(region.z[0], region.z[1], z) - 0.5
 
       if (animate && steps) {
-        this.targets[i] = (z * box_size) / (region.z[1] - region.z[0])
+        this.targets[i] = target
         this.increments[i] = (this.targets[i] - verts[i * 3 + 2]) / steps
       } else {
-        verts[i * 3 + 2] = (z * box_size) / (region.z[1] - region.z[0])
+        verts[i * 3 + 2] = target
       }
     }
+
+    this.axis.position.set(
+      inverseLerp(region.x[0], region.x[1], 0) - 0.5,
+      inverseLerp(region.y[0], region.y[1], 0) - 0.5,
+      inverseLerp(region.z[0], region.z[1], 0) - 0.5
+    )
     return result
   }
 
@@ -221,7 +244,7 @@ class GraphIt {
       if (!fake) {
         history.pushState(null, null, '#' + btoa(value))
       }
-      this.base_time = new Date().getTime()
+      this.base_time = performance.now()
       this.fun = fun
       this.dirty = true
       if (this.first || this.time_parametric) {
@@ -254,10 +277,24 @@ window.addEventListener('DOMContentLoaded', () => {
   git.input(fun, true)
   window.addEventListener('resize', () => {
     git.camera.aspect = window.innerWidth / window.innerHeight
+    git.camera.zoom = Math.min(1, window.innerWidth / window.innerHeight)
     git.renderer.setSize(window.innerWidth, window.innerHeight)
     git.camera.updateProjectionMatrix()
-    git.controls.handleResize()
     git.renderer.render(git.scene, git.camera)
+  })
+  Array.from(document.getElementsByClassName('domain')).forEach(el => {
+    el.addEventListener('input', e => {
+      const name = e.target.name
+      const value = e.target.value
+      e.target.style.width = 2 + value.replace(/^-/, '').length + 'ch'
+      region[name[0]][name.slice(1) === 'min' ? 0 : 1] = +value
+      git.input(input.value, true)
+    })
+  })
+  document.getElementById('helpers').addEventListener('change', e => {
+    git.box.visible = e.target.checked
+    git.axis.visible = e.target.checked
+    git.refresh()
   })
 
   window.addEventListener('popstate', () => {
