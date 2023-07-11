@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graphit GL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        background-color: black;
+        font-family: 'Fira Code', monospace;
+      }
+      #input {
+        position: fixed;
+        font-size: 2em;
+        top: 2em;
+        text-align: center;
+        width: 100%;
+        background-color: transparent;
+        color: white;
+        border: none;
+        outline: none;
+      }
+      .range {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        color: white;
+      }
+      .domain {
+        background-color: transparent;
+        color: white;
+        border: none;
+        outline: none;
+        width: 3ch;
+        font-size: 1.5em;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-d129ce7f.js"></script>
+  </head>
+  <body>
+    <input type="text" id="input" name="input" />
+    <div class="range">
+      <div>
+        <label>x</label>
+        <input type="number" name="xmin" class="domain" value="-5" />
+        x
+        <input type="number" name="xmax" class="domain" value="5" />
+      </div>
+      <div>
+        <label>y</label>
+        <input type="number" name="ymin" class="domain" value="-5" />
+        x
+        <input type="number" name="ymax" class="domain" value="5" />
+      </div>
+      <div>
+        <label>z</label>
+        <input type="number" name="zmin" class="domain" value="-5" />
+        x
+        <input type="number" name="zmax" class="domain" value="5" />
+      </div>
+      <label
+        >Helpers
+        <input type="checkbox" name="helpers" id="helpers" checked />
+      </label>
+    </div>
+    <canvas id="gl"></canvas>
+    
+  </body>
+</html>
